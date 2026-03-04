@@ -130,7 +130,8 @@ export class GameScene extends Phaser.Scene {
             const ally = new Enemy(this, this.player.x - 100, this.player.y, shuffled[0], true);
             this.allies.add(ally);
             for (let i = 1; i <= 2; i++) {
-                const enemy = new Enemy(this, centerX, centerY - 300 + (i * 100), shuffled[i], false);
+                const angle = (i / 2) * Math.PI;
+                const enemy = new Enemy(this, centerX + Math.cos(angle) * spawnRadius, centerY + Math.sin(angle) * spawnRadius, shuffled[i], false);
                 this.enemies.add(enemy);
             }
         } else if (mode === '3x3') {
@@ -140,7 +141,8 @@ export class GameScene extends Phaser.Scene {
                 this.allies.add(ally);
             }
             for (let i = 0; i < 3; i++) {
-                const enemy = new Enemy(this, centerX - 100 + (i * 100), centerY - 300, shuffled[i + 2], false);
+                const angle = (i / 3) * Math.PI * 2;
+                const enemy = new Enemy(this, centerX + Math.cos(angle) * spawnRadius, centerY + Math.sin(angle) * spawnRadius, shuffled[i + 2], false);
                 this.enemies.add(enemy);
             }
         }
@@ -193,17 +195,18 @@ export class GameScene extends Phaser.Scene {
     handleCharacterKilled() {
         if (!this.isGameRunning) return;
 
-        const enemyCount = this.enemies.countActive();
-        const allyCount = this.allies.countActive();
-        const playerAlive = this.player && this.player.active;
+        // Small delay to ensure Phaser has updated group lists
+        this.time.delayedCall(100, () => {
+            const enemiesLeft = this.enemies.getChildren().filter(e => e.active).length;
+            const alliesLeft = this.allies.getChildren().filter(a => a.active).length;
+            const playerAlive = this.player && this.player.active;
 
-        if (enemyCount === 0) {
-            // Player's Team Wins
-            this.time.delayedCall(500, () => this.endRound(true));
-        } else if (!playerAlive && allyCount === 0) {
-            // Player's Team Loses
-            this.time.delayedCall(500, () => this.endRound(false));
-        }
+            if (enemiesLeft === 0) {
+                this.endRound(true);
+            } else if (!playerAlive && alliesLeft === 0) {
+                this.endRound(false);
+            }
+        });
     }
 
     handlePlayerDeath() {
@@ -219,22 +222,24 @@ export class GameScene extends Phaser.Scene {
             ScoreManager.addPoints(this.player.characterId, ScoreManager.WIN_POINTS);
             AchievementManager.recordWin();
 
-            // Award points to surviving allies too? (Simulação competitiva)
-            this.allies.getChildren().forEach(a => {
-                if (a.active) ScoreManager.addPoints(a.characterId, ScoreManager.WIN_POINTS);
-            });
+            // Winners in group modes also gain points
+            if (this.gameMode !== 'FFA') {
+                this.allies.getChildren().forEach(a => {
+                    if (a.active) ScoreManager.addPoints(a.characterId, ScoreManager.WIN_POINTS);
+                });
+            }
 
             if (ScoreManager.getScore(this.player.characterId) >= ScoreManager.MATCH_WIN_THRESHOLD) {
                 this.displayMatchFinished(this.player.characterId);
-                return;
+            } else {
+                this.displayOverlayScreen('VITÓRIA!', '#00ffff');
             }
-            this.displayScoreboard('VITÓRIA!', '#00ffff');
         } else {
             // Award points to surviving enemies
             this.enemies.getChildren().forEach(e => {
                 if (e.active) ScoreManager.addPoints(e.characterId, ScoreManager.WIN_POINTS);
             });
-            this.displayScoreboard('DERROTA!', '#ff0000');
+            this.displayOverlayScreen('DERROTA!', '#ff0000');
         }
     }
 
@@ -242,35 +247,71 @@ export class GameScene extends Phaser.Scene {
         this.endRound(true);
     }
 
-    displayScoreboard(title, color) {
+    displayOverlayScreen(title, color) {
         const { width, height } = this.scale;
-        const overlay = this.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.9).setInteractive();
-        this.add.text(width / 2, 80, title, { fontSize: '48px', color: color, fontFamily: 'Space Grotesk' }).setOrigin(0.5);
+
+        // Dark Overlay
+        const overlay = this.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.85);
+        overlay.setScrollFactor(0);
+        overlay.setDepth(100);
+
+        // Main Title
+        const mainTitle = this.add.text(width / 2, height / 2 - 150, title, {
+            fontSize: '120px', color: color, fontFamily: 'Space Grotesk', fontStyle: 'bold'
+        }).setOrigin(0.5).setScrollFactor(0).setDepth(101);
+
+        // Scoreboard Container
+        const scoreContainer = this.add.container(width / 2, height / 2 + 50);
+        scoreContainer.setScrollFactor(0);
+        scoreContainer.setDepth(101);
 
         const scores = ScoreManager.getAllScores();
         const sorted = Object.entries(scores).sort((a, b) => b[1] - a[1]);
 
         sorted.forEach((e, i) => {
             const isPlayer = this.player && e[0] === this.player.characterId;
-            const y = 180 + (i * 45);
-            if (isPlayer) this.add.rectangle(width / 2, y, 500, 40, 0x00ffff, 0.1);
-            this.add.text(width / 2 - 200, y, `${i + 1}. ${e[0].toUpperCase()}`, { fontSize: '24px', color: isPlayer ? '#00ffff' : '#fff' }).setOrigin(0, 0.5);
-            this.add.text(width / 2 + 200, y, `${e[1]} PTS`, { fontSize: '24px', color: '#fff' }).setOrigin(1, 0.5);
+            const y = (i * 35) - 100;
+
+            if (isPlayer) {
+                const glow = this.add.rectangle(0, y, 600, 30, 0x00ffff, 0.15);
+                scoreContainer.add(glow);
+            }
+
+            const nameTxt = this.add.text(-250, y, `${i + 1}. ${e[0].toUpperCase()}`, {
+                fontSize: '20px', color: isPlayer ? '#00ffff' : '#ffffff', fontFamily: 'Outfit'
+            }).setOrigin(0, 0.5);
+
+            const ptsTxt = this.add.text(250, y, `${e[1]} PTS`, {
+                fontSize: '20px', color: '#ffffff', fontFamily: 'Space Grotesk'
+            }).setOrigin(1, 0.5);
+
+            scoreContainer.add([nameTxt, ptsTxt]);
         });
 
-        const btn = this.add.container(width / 2, height - 80);
-        const bg = this.add.rectangle(0, 0, 240, 50, 0x333333, 1).setStrokeStyle(2, 0xffffff);
-        const txt = this.add.text(0, 0, 'CONTINUAR', { fontSize: '20px', color: '#fff' }).setOrigin(0.5);
-        btn.add([bg, txt]).setSize(240, 50).setInteractive({ useHandCursor: true }).on('pointerdown', () => { window.location.reload(); });
+        const btnTxt = this.add.text(width / 2, height - 80, 'CONTINUAR (PRESSSPACE)', {
+            fontSize: '24px', color: '#ffffff', fontFamily: 'Outfit', backgroundColor: '#333', padding: { x: 20, y: 10 }
+        }).setOrigin(0.5).setScrollFactor(0).setDepth(102).setInteractive({ useHandCursor: true });
+
+        btnTxt.on('pointerdown', () => { window.location.reload(); });
+        this.input.keyboard.once('keydown-SPACE', () => { window.location.reload(); });
     }
 
     displayMatchFinished(winnerId) {
         const { width, height } = this.scale;
-        this.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.95);
+        this.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.95).setScrollFactor(0).setDepth(200);
         const isPlayer = this.player && winnerId === this.player.characterId;
-        this.add.text(width / 2, height / 2 - 100, isPlayer ? 'CAMPEÃO DA PARTIDA!' : 'PARTIDA ENCERRADA', { fontSize: '64px', color: isPlayer ? '#00ffff' : '#ff0000' }).setOrigin(0.5);
-        this.add.text(width / 2, height / 2, `VENCEDOR: ${winnerId.toUpperCase()}`, { fontSize: '32px', color: '#fff' }).setOrigin(0.5);
-        const btn = this.add.text(width / 2, height / 2 + 100, 'VOLTAR AO HUB', { fontSize: '24px', backgroundColor: '#333', padding: 15 }).setOrigin(0.5).setInteractive({ useHandCursor: true }).on('pointerdown', () => {
+
+        this.add.text(width / 2, height / 2 - 100, isPlayer ? 'CAMPEÃO DA PARTIDA!' : 'PARTIDA ENCERRADA', {
+            fontSize: '80px', color: isPlayer ? '#00ffff' : '#ff0000', fontStyle: 'bold'
+        }).setOrigin(0.5).setScrollFactor(0).setDepth(201);
+
+        this.add.text(width / 2, height / 2, `VENCEDOR FINAL: ${winnerId.toUpperCase()}`, {
+            fontSize: '32px', color: '#fff'
+        }).setOrigin(0.5).setScrollFactor(0).setDepth(201);
+
+        const btn = this.add.text(width / 2, height / 2 + 150, 'VOLTAR AO HUB', {
+            fontSize: '28px', backgroundColor: '#333', padding: 20, color: '#fff'
+        }).setOrigin(0.5).setScrollFactor(0).setDepth(201).setInteractive({ useHandCursor: true }).on('pointerdown', () => {
             ScoreManager.resetMatch(); window.location.reload();
         });
     }
@@ -278,9 +319,8 @@ export class GameScene extends Phaser.Scene {
     update() {
         if (!this.isGameRunning) return;
         if (this.keys.ESC.isDown) window.location.reload();
-        if (!this.player || !this.player.active) {
-            // Mesmo morto, a cena continua para ver os aliados lutarem
-        } else {
+
+        if (this.player && this.player.active) {
             this.player.update(this.keys, this.input.activePointer);
         }
 
