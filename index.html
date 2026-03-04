@@ -71,7 +71,6 @@
             backdrop-filter: blur(15px);
             padding: 12px 24px;
             margin: 10px;
-            /* Adicionado margem para evitar corte */
             border-radius: 50px;
             border: 1px solid var(--border-color);
             display: flex;
@@ -123,22 +122,74 @@
             }
         }
 
-        #character-selection {
+        /* Menu Systems */
+        .overlay-screen {
             position: absolute;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0, 0, 0, 0.9);
-            backdrop-filter: blur(10px);
+            background: rgba(0, 0, 0, 0.95);
+            backdrop-filter: blur(15px);
             display: flex;
             flex-direction: column;
             justify-content: center;
             align-items: center;
             z-index: 20;
-            transition: opacity 0.5s;
+            transition: all 0.5s ease;
         }
 
+        .menu-list {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .menu-btn {
+            width: 300px;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: white;
+            font-size: 1.5rem;
+            font-family: 'Space Grotesk', sans-serif;
+            text-transform: uppercase;
+            letter-spacing: 4px;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-align: center;
+        }
+
+        .menu-btn:hover {
+            background: var(--accent-color);
+            color: black;
+            box-shadow: 0 0 30px rgba(0, 255, 255, 0.3);
+            transform: scale(1.05);
+        }
+
+        #achievements-list,
+        #credits-content {
+            text-align: center;
+            line-height: 2;
+        }
+
+        .ach-item {
+            font-size: 1.2rem;
+            margin: 10px 0;
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .ach-item.complete {
+            color: var(--accent-color);
+            text-shadow: 0 0 5px var(--accent-color);
+        }
+
+        #character-selection {
+            display: none;
+            /* Initial hidden */
+        }
+
+        /* Character Cards (Existing) */
         .selection-title {
             margin-bottom: 40px;
             font-size: 3rem;
@@ -160,22 +211,25 @@
         }
 
         .char-card {
-            width: 180px;
-            height: 280px;
+            width: 160px;
+            height: 240px;
             background: rgba(255, 255, 255, 0.03);
             border: 1px solid rgba(255, 255, 255, 0.1);
             border-radius: 12px;
             cursor: pointer;
-            transition: all 0.3s cubic-bezier(0.2, 0, 0.2, 1);
+            transition: all 0.3s;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: flex-end;
-            padding: 20px 10px;
+            padding: 15px 10px;
             text-align: center;
-            position: relative;
-            overflow: hidden;
-            pointer-events: all;
+        }
+
+        .char-card:hover {
+            border-color: var(--char-color);
+            transform: translateY(-5px);
+            background: rgba(var(--char-color-rgb), 0.05);
         }
 
         .char-card.yammy {
@@ -229,46 +283,35 @@
         }
 
         .char-name {
-            font-size: 1.2rem;
+            font-size: 1rem;
             font-weight: 700;
-            margin-bottom: 4px;
-            z-index: 1;
         }
 
         .char-type {
-            font-size: 0.7rem;
+            font-size: 0.6rem;
             opacity: 0.6;
             text-transform: uppercase;
-            letter-spacing: 1px;
-            margin-bottom: 15px;
-            z-index: 1;
+            margin-bottom: 5px;
         }
 
         .char-skills {
-            font-size: 0.75rem;
+            font-size: 0.65rem;
             border-top: 1px solid rgba(255, 255, 255, 0.1);
-            padding-top: 10px;
+            padding-top: 5px;
             width: 100%;
-            z-index: 1;
-            line-height: 1.4;
+            line-height: 1.3;
         }
 
         .char-skills b {
             color: var(--char-color);
         }
 
-        .resurrection-available {
-            margin-top: 20px;
-            color: #ffaa00;
-            font-weight: bold;
-            display: none;
-            animation: blink 1s infinite;
-        }
-
-        @keyframes blink {
-            50% {
-                opacity: 0.3;
-            }
+        .back-btn {
+            margin-top: 30px;
+            font-size: 0.9rem;
+            opacity: 0.5;
+            cursor: pointer;
+            text-decoration: underline;
         }
     </style>
 </head>
@@ -276,104 +319,169 @@
 <body>
     <div id="app">
         <div id="game-container">
+            <!-- Game HUD -->
             <div class="ui-top">
                 <div class="stack-counter">
                     <div style="display: flex; flex-direction: column;">
-                        <span class="stack-label">Forma Liberada em 10 Stacks</span>
+                        <span id="stack-label" class="stack-label">PONTOS:</span>
                         <div style="display: flex; align-items: baseline; gap: 8px;">
                             <span id="stack-value" class="stack-value">0</span>
-                            <span class="stack-label">Stacks</span>
                         </div>
+                        <span class="stack-label" style="font-size: 0.55rem; color: #ffaa00;">REQUER 25 PONTOS PARA
+                            R</span>
                     </div>
                 </div>
                 <div class="controls-hint">
                     Mover: <b>WASD</b> | Mirar: <b>MOUSE</b><br>
                     Ataque: <b>CLICK</b> | Habilidades: <b>Q / E</b><br>
-                    <span id="r-hint">Resurrección: <b>R</b> (Requer 10 Stacks)</span>
+                    <span id="r-hint">Resurrección: <b>R</b> (BLOQUEADO)</span>
                 </div>
             </div>
 
-            <div id="character-selection">
-                <h1 class="selection-title" style="font-size: 2rem; margin-bottom: 20px;">ESCOLHA SEU ESPADA</h1>
+            <!-- HUB Screen -->
+            <div id="hub-screen" class="overlay-screen">
+                <h1 class="selection-title">ESPADA ARENA</h1>
+                <div class="menu-list">
+                    <div class="menu-btn" onclick="showModes()">Jogar</div>
+                    <div class="menu-btn" onclick="showAchievements()">Conquistas</div>
+                    <div class="menu-btn" onclick="showCredits()">Créditos</div>
+                </div>
+            </div>
+
+            <!-- Play Modes Screen -->
+            <div id="modes-screen" class="overlay-screen" style="display: none;">
+                <h1 class="selection-title">MODOS DE JOGO</h1>
+                <div class="menu-list">
+                    <div class="menu-btn" onclick="openSelection('FFA')">FFA</div>
+                    <div class="menu-btn" onclick="openSelection('2x2')">2x2</div>
+                    <div class="menu-btn" onclick="openSelection('3x3')">3x3</div>
+                </div>
+                <div class="back-btn" onclick="goToHub()">VOLTAR AO MENU</div>
+            </div>
+
+            <!-- Achievements Screen -->
+            <div id="achievements-screen" class="overlay-screen" style="display: none;">
+                <h1 class="selection-title">CONQUISTAS</h1>
+                <div id="achievements-list">
+                    <!-- Dynamic -->
+                </div>
+                <div class="back-btn" onclick="goToHub()">VOLTAR AO MENU</div>
+            </div>
+
+            <!-- Credits Screen -->
+            <div id="credits-screen" class="overlay-screen" style="display: none;">
+                <h1 class="selection-title">CRÉDITOS</h1>
+                <div id="credits-content">
+                    <p style="font-size: 1.5rem;">Made by <b>João</b> e <b>Antigravity</b></p>
+                </div>
+                <div class="back-btn" onclick="goToHub()">VOLTAR AO MENU</div>
+            </div>
+
+            <!-- Character Selection -->
+            <div id="character-selection" class="overlay-screen">
+                <h1 class="selection-title">SELECIONE SEU ESPADA</h1>
+                <div id="mode-indicator" style="color: var(--accent-color); margin-bottom: 20px; font-weight: bold;">
+                </div>
                 <div class="cards-container">
-                    <!-- 0. Yammy -->
+                    <!-- Cards are fixed in HTML for speed/consistency -->
                     <div class="char-card yammy" onclick="selectChar('yammy')">
                         <div class="char-name">Yammy (0)</div>
                         <div class="char-type">Llargo / Tanque</div>
-                        <div class="char-skills">Q: <b>Cero Titã</b><br>E: <b>Ira Gigante</b></div>
+                        <div class="char-skills">Q: <b>Cero Titã</b><br>E: <b>Ira</b></div>
                     </div>
-                    <!-- 1. Starrk -->
                     <div class="char-card starrk" onclick="selectChar('starrk')">
                         <div class="char-name">Starrk (1)</div>
-                        <div class="char-type">Coyote / Atirador</div>
-                        <div class="char-skills">Q: <b>Cero Metralhadora</b><br>E: <b>Colmillo</b></div>
+                        <div class="char-type">Atirador</div>
+                        <div class="char-skills">Q: <b>Metralhadora</b><br>E: <b>Colmillo</b></div>
                     </div>
-                    <!-- 2. Baraggan -->
                     <div class="char-card baraggan" onclick="selectChar('baraggan')">
                         <div class="char-name">Baraggan (2)</div>
-                        <div class="char-type">Louisnbarn / Rei</div>
+                        <div class="char-type">Rei</div>
                         <div class="char-skills">Q: <b>Respira</b><br>E: <b>Gran Caída</b></div>
                     </div>
-                    <!-- 3. Halibel -->
                     <div class="char-card halibel" onclick="selectChar('halibel')">
                         <div class="char-name">Halibel (3)</div>
-                        <div class="char-type">Tier / Imperatriz</div>
+                        <div class="char-type">Imperatriz</div>
                         <div class="char-skills">Q: <b>Hirviendo</b><br>E: <b>Cascada</b></div>
                     </div>
-                    <!-- 4. Ulquiorra -->
                     <div class="char-card ulquiorra" onclick="selectChar('ulquiorra')">
                         <div class="char-name">Ulquiorra (4)</div>
-                        <div class="char-type">Cifer / Assassino</div>
-                        <div class="char-skills">Q: <b>Luz de la Luna</b><br>E: <b>Sonído Dash</b></div>
+                        <div class="char-type">Cifer / Sombra</div>
+                        <div class="char-skills">Q: <b>Luz Luna</b><br>E: <b>Dash</b></div>
                     </div>
-                    <!-- 5. Nnoitra -->
                     <div class="char-card nnoitra" onclick="selectChar('nnoitra')">
                         <div class="char-name">Nnoitra (5)</div>
-                        <div class="char-type">Gilga / Berserker</div>
-                        <div class="char-skills">Q: <b>Cero Doble</b><br>E: <b>Santa Teresa</b></div>
+                        <div class="char-type">Berserker</div>
+                        <div class="char-skills">Q: <b>Cero Doble</b><br>E: <b>Teresa</b></div>
                     </div>
-                    <!-- 6. Grimmjow -->
                     <div class="char-card grimmjow" onclick="selectChar('grimmjow')">
                         <div class="char-name">Grimmjow (6)</div>
-                        <div class="char-type">Jaegerjaquez / Brawler</div>
-                        <div class="char-skills">Q: <b>Gran Rey Cero</b><br>E: <b>Desgarrón</b></div>
+                        <div class="char-type">Brawler</div>
+                        <div class="char-skills">Q: <b>Rey Cero</b><br>E: <b>Desgarrón</b></div>
                     </div>
-                    <!-- 7. Zommari -->
                     <div class="char-card zommari" onclick="selectChar('zommari')">
                         <div class="char-name">Zommari (7)</div>
-                        <div class="char-type">Rureaux / Velocista</div>
+                        <div class="char-type">Velocista</div>
                         <div class="char-skills">Q: <b>Amor</b><br>E: <b>Gemelos</b></div>
                     </div>
-                    <!-- 8. Szayelaporro -->
                     <div class="char-card szayel" onclick="selectChar('szayel')">
                         <div class="char-name">Szayel (8)</div>
-                        <div class="char-type">Granz / Cientista</div>
-                        <div class="char-skills">Q: <b>Copy</b><br>E: <b>Teatro de Titere</b></div>
+                        <div class="char-type">Cientista</div>
+                        <div class="char-skills">Q: <b>Copy</b><br>E: <b>Teatro</b></div>
                     </div>
-                    <!-- 9. Aaroniero -->
                     <div class="char-card aaroniero" onclick="selectChar('aaroniero')">
                         <div class="char-name">Aaroniero (9)</div>
-                        <div class="char-type">Arruruerie / Glotão</div>
+                        <div class="char-type">Glotão</div>
                         <div class="char-skills">Q: <b>Glotonería</b><br>E: <b>Nejibana</b></div>
                     </div>
                 </div>
+                <div class="back-btn" onclick="showModes()">VOLTAR AOS MODOS</div>
             </div>
         </div>
     </div>
+
     <script type="module" src="/src/main.js"></script>
     <script>
-        function selectChar(id) {
-            window.dispatchEvent(new CustomEvent('charSelected', { detail: id }));
-            const selection = document.getElementById('character-selection');
-            selection.style.opacity = '0';
-            setTimeout(() => selection.style.display = 'none', 500);
+        let currentMode = 'FFA';
 
-            // Check for R ability
-            const stacks = parseInt(document.getElementById('stack-value').innerText);
-            const rHint = document.getElementById('r-hint');
-            if (stacks >= 10) {
-                rHint.innerHTML = 'Resurrección: <b style="color: #ffaa00">R (PRONTO PARA LIBERAR)</b>';
-            }
+        function showModes() {
+            hideAll();
+            document.getElementById('modes-screen').style.display = 'flex';
+        }
+
+        function showAchievements() {
+            hideAll();
+            document.getElementById('achievements-screen').style.display = 'flex';
+            window.dispatchEvent(new CustomEvent('updateAchievements'));
+        }
+
+        function showCredits() {
+            hideAll();
+            document.getElementById('credits-screen').style.display = 'flex';
+        }
+
+        function goToHub() {
+            hideAll();
+            document.getElementById('hub-screen').style.display = 'flex';
+        }
+
+        function openSelection(mode) {
+            currentMode = mode;
+            hideAll();
+            document.getElementById('character-selection').style.display = 'flex';
+            document.getElementById('mode-indicator').innerText = 'MODO: ' + mode;
+        }
+
+        function hideAll() {
+            const screens = ['hub-screen', 'modes-screen', 'achievements-screen', 'credits-screen', 'character-selection'];
+            screens.forEach(s => document.getElementById(s).style.display = 'none');
+        }
+
+        function selectChar(id) {
+            window.dispatchEvent(new CustomEvent('charSelected', {
+                detail: { characterId: id, mode: currentMode }
+            }));
+            hideAll();
         }
     </script>
 </body>
