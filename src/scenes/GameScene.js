@@ -250,50 +250,52 @@ export class GameScene extends Phaser.Scene {
     displayOverlayScreen(title, color) {
         const { width, height } = this.scale;
 
-        // Dark Overlay
-        const overlay = this.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.85);
-        overlay.setScrollFactor(0);
-        overlay.setDepth(100);
+        const overlay = this.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.85).setScrollFactor(0).setDepth(100);
 
-        // Main Title
-        const mainTitle = this.add.text(width / 2, height / 2 - 150, title, {
-            fontSize: '120px', color: color, fontFamily: 'Space Grotesk', fontStyle: 'bold'
+        this.add.text(width / 2, height / 2 - 150, title, {
+            fontSize: '100px', color: color, fontFamily: 'Space Grotesk', fontStyle: 'bold'
         }).setOrigin(0.5).setScrollFactor(0).setDepth(101);
 
-        // Scoreboard Container
-        const scoreContainer = this.add.container(width / 2, height / 2 + 50);
-        scoreContainer.setScrollFactor(0);
-        scoreContainer.setDepth(101);
-
+        const scoreContainer = this.add.container(width / 2, height / 2 + 50).setScrollFactor(0).setDepth(101);
         const scores = ScoreManager.getAllScores();
         const sorted = Object.entries(scores).sort((a, b) => b[1] - a[1]);
 
         sorted.forEach((e, i) => {
             const isPlayer = this.player && e[0] === this.player.characterId;
             const y = (i * 35) - 100;
-
             if (isPlayer) {
-                const glow = this.add.rectangle(0, y, 600, 30, 0x00ffff, 0.15);
-                scoreContainer.add(glow);
+                scoreContainer.add(this.add.rectangle(0, y, 600, 30, 0x00ffff, 0.15));
             }
-
-            const nameTxt = this.add.text(-250, y, `${i + 1}. ${e[0].toUpperCase()}`, {
+            scoreContainer.add(this.add.text(-250, y, `${i + 1}. ${e[0].toUpperCase()}`, {
                 fontSize: '20px', color: isPlayer ? '#00ffff' : '#ffffff', fontFamily: 'Outfit'
-            }).setOrigin(0, 0.5);
-
-            const ptsTxt = this.add.text(250, y, `${e[1]} PTS`, {
+            }).setOrigin(0, 0.5));
+            scoreContainer.add(this.add.text(250, y, `${e[1]} PTS`, {
                 fontSize: '20px', color: '#ffffff', fontFamily: 'Space Grotesk'
-            }).setOrigin(1, 0.5);
-
-            scoreContainer.add([nameTxt, ptsTxt]);
+            }).setOrigin(1, 0.5));
         });
 
-        const btnTxt = this.add.text(width / 2, height - 80, 'CONTINUAR (PRESSSPACE)', {
-            fontSize: '24px', color: '#ffffff', fontFamily: 'Outfit', backgroundColor: '#333', padding: { x: 20, y: 10 }
-        }).setOrigin(0.5).setScrollFactor(0).setDepth(102).setInteractive({ useHandCursor: true });
+        const btnContainer = this.add.container(width / 2, height - 80).setScrollFactor(0).setDepth(102);
 
-        btnTxt.on('pointerdown', () => { window.location.reload(); });
-        this.input.keyboard.once('keydown-SPACE', () => { window.location.reload(); });
+        const btnNext = this.add.text(-120, 0, 'PRÓXIMA RODADA', {
+            fontSize: '24px', color: '#00ffff', fontFamily: 'Outfit', backgroundColor: '#333', padding: { x: 20, y: 10 }
+        }).setOrigin(0.5).setInteractive({ useHandCursor: true });
+
+        const btnLobby = this.add.text(120, 0, 'SAIR PARA O MENU', {
+            fontSize: '20px', color: '#ffffff', fontFamily: 'Outfit', backgroundColor: '#552222', padding: { x: 15, y: 8 }
+        }).setOrigin(0.5).setInteractive({ useHandCursor: true });
+
+        btnContainer.add([btnNext, btnLobby]);
+
+        const nextRound = () => {
+            const charId = this.player.characterId;
+            const mode = this.gameMode;
+            this.scene.restart();
+            this.events.once('create', () => this.startGame(charId, mode));
+        };
+
+        btnNext.on('pointerdown', nextRound);
+        btnLobby.on('pointerdown', () => window.location.reload());
+        this.input.keyboard.once('keydown-SPACE', nextRound);
     }
 
     displayMatchFinished(winnerId) {
@@ -309,7 +311,7 @@ export class GameScene extends Phaser.Scene {
             fontSize: '32px', color: '#fff'
         }).setOrigin(0.5).setScrollFactor(0).setDepth(201);
 
-        const btn = this.add.text(width / 2, height / 2 + 150, 'VOLTAR AO HUB', {
+        const btn = this.add.text(width / 2, height / 2 + 150, 'VOLTAR AO MENU', {
             fontSize: '28px', backgroundColor: '#333', padding: 20, color: '#fff'
         }).setOrigin(0.5).setScrollFactor(0).setDepth(201).setInteractive({ useHandCursor: true }).on('pointerdown', () => {
             ScoreManager.resetMatch(); window.location.reload();
