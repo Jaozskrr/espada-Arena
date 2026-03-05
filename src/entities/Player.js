@@ -168,8 +168,42 @@ export class Player extends Phaser.GameObjects.Container {
         if (this.characterId === 'yammy') {
             this.createAOE(150, 0xff0000, 30);
         } else if (this.characterId === 'starrk') {
-            this.spawnProjectile(this.rotation - 0.3, 400, 20, 0x00d9ff, 10);
-            this.spawnProjectile(this.rotation + 0.3, 400, 20, 0x00d9ff, 10);
+            // Colmillo — raio retangular na direção apontada
+            const beamLen = 400;
+            const beamH = 28;
+            const angle = this.rotation;
+            const cx = this.x + Math.cos(angle) * (beamLen / 2);
+            const cy = this.y + Math.sin(angle) * (beamLen / 2);
+
+            // Glow layer (wider, semi-transparent)
+            const glow = this.scene.add.rectangle(cx, cy, beamLen, beamH + 14, 0x00d9ff, 0.25);
+            glow.setRotation(angle);
+            glow.setDepth(4);
+            this.scene.tweens.add({
+                targets: glow, alpha: 0, scaleY: 0.1,
+                duration: 350, ease: 'Cubic.easeOut',
+                onComplete: () => { if (glow.active) glow.destroy(); }
+            });
+
+            // Core beam (bright, thin)
+            const beam = this.scene.add.rectangle(cx, cy, beamLen, beamH, 0x00d9ff, 0.9);
+            beam.setRotation(angle);
+            beam.setDepth(5);
+            this.scene.tweens.add({
+                targets: beam, alpha: 0, scaleY: 0.05,
+                duration: 280, ease: 'Cubic.easeOut',
+                onComplete: () => { if (beam.active) beam.destroy(); }
+            });
+
+            // Hitbox
+            const hitbox = this.scene.add.rectangle(cx, cy, beamLen, beamH, 0x00d9ff, 0);
+            hitbox.setRotation(angle);
+            this.scene.physics.add.existing(hitbox);
+            this.scene.projectiles.add(hitbox);
+            hitbox.damage = 25 * this.stats.damageMultiplier;
+            hitbox.owner = this;
+            this.scene.time.delayedCall(180, () => { if (hitbox.active) hitbox.destroy(); });
+
         } else if (this.characterId === 'baraggan') {
             const area = this.createAOE(120, 0x8b00ff, 40);
             area.isProximity = true;
@@ -182,7 +216,8 @@ export class Player extends Phaser.GameObjects.Container {
             this.createDashGhost();
             this.scene.tweens.add({ targets: this, x: targetX, y: targetY, duration: 150, ease: 'Cubic.easeOut' });
         } else if (this.characterId === 'nnoitra') {
-            this.createAOE(100, 0xffaa00, 50);
+            this.createSlashAbility();
+
         } else if (this.characterId === 'grimmjow') {
             this.createAOE(80, 0x0066ff, 25);
         } else if (this.characterId === 'zommari') {
@@ -219,6 +254,56 @@ export class Player extends Phaser.GameObjects.Container {
         area.isSlow = true; area.slowDuration = 2000;
         this.scene.tweens.add({ targets: area, alpha: 0, duration: 500, onComplete: () => area.destroy() });
         return area;
+    }
+
+    createSlashAbility() {
+        const slashDamage = 50 * this.stats.damageMultiplier;
+        const baseAngle = this.rotation;
+        // 3 slashes: left, center, right — staggered in time (ms)
+        const slashAngles = [
+            { offset: -0.55, delay: 0 },
+            { offset: 0, delay: 70 },
+            { offset: 0.55, delay: 140 }
+        ];
+
+        slashAngles.forEach(({ offset, delay }) => {
+            this.scene.time.delayedCall(delay, () => {
+                if (!this.active) return;
+                const angle = baseAngle + offset;
+                const slashLen = 140;
+                const slashW = 10;
+                const dist = 80; // distance in front of player
+
+                const cx = this.x + Math.cos(angle) * dist;
+                const cy = this.y + Math.sin(angle) * dist;
+
+                // ── Visual slash line (thin rectangle) ──
+                const visual = this.scene.add.rectangle(cx, cy, slashLen, slashW, 0xffaa00, 0.9);
+                visual.setRotation(angle);
+                visual.setDepth(5);
+
+                this.scene.tweens.add({
+                    targets: visual,
+                    scaleX: 1.4, scaleY: 0.1,
+                    alpha: 0,
+                    x: cx + Math.cos(angle) * 30,
+                    y: cy + Math.sin(angle) * 30,
+                    duration: 220,
+                    ease: 'Cubic.easeOut',
+                    onComplete: () => { if (visual.active) visual.destroy(); }
+                });
+
+                // ── Hitbox rectangle (invisible, registered as projectile) ──
+                const hitbox = this.scene.add.rectangle(cx, cy, slashLen, 40, 0xffaa00, 0);
+                hitbox.setRotation(angle);
+                this.scene.physics.add.existing(hitbox);
+                this.scene.projectiles.add(hitbox);
+                hitbox.damage = slashDamage;
+                hitbox.owner = this;
+
+                this.scene.time.delayedCall(120, () => { if (hitbox.active) hitbox.destroy(); });
+            });
+        });
     }
 
     createDashGhost() {
