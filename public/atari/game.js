@@ -29,6 +29,7 @@ let enemies = [];
 let powerups = [];
 let particles = [];
 let keys = {};
+let mouse = { x: 0, y: 0 };
 
 // Constants
 const FRICTION = 0.98;
@@ -45,11 +46,13 @@ class Player {
         this.color = '#39ff14';
         this.hasShield = false;
         this.shieldTime = 0;
+        this.angle = 0;
     }
 
     draw() {
         ctx.save();
         ctx.translate(this.x, this.y);
+        ctx.rotate(this.angle);
         
         // Draw Shield
         if (this.hasShield) {
@@ -91,6 +94,11 @@ class Player {
 
         this.x += this.vx;
         this.y += this.vy;
+
+        // Update Angle towards mouse
+        const dx = mouse.x - this.x;
+        const dy = mouse.y - this.y;
+        this.angle = Math.atan2(dy, dx) + Math.PI / 2;
 
         // Screen Wrap-around
         if (this.x < 0) this.x = canvas.width;
@@ -364,23 +372,26 @@ window.addEventListener('keydown', (e) => {
         if (gameState === 'START' || gameState === 'GAMEOVER') {
             initGame();
         } else if (gameState === 'PLAYING') {
-            // Mechanic 2: Laser Shooting
+            // Mechanic 2: Laser Shooting (MOUSE AIM)
             const bulletSpeed = 10;
-            const mag = Math.sqrt(player.vx * player.vx + player.vy * player.vy);
-            let bvx, bvy;
-
-            if (mag > 0.2) {
-                bvx = (player.vx / mag) * bulletSpeed;
-                bvy = (player.vy / mag) * bulletSpeed;
-            } else {
-                bvx = 0;
-                bvy = -bulletSpeed;
-            }
+            const dx = mouse.x - player.x;
+            const dy = mouse.y - player.y;
+            const mag = Math.sqrt(dx * dx + dy * dy);
+            
+            let bvx = (dx / mag) * bulletSpeed;
+            let bvy = (dy / mag) * bulletSpeed;
             
             bullets.push(new Bullet(player.x, player.y, bvx, bvy));
         }
     }
 });
+
+window.addEventListener('mousemove', (e) => {
+    const rect = canvas.getBoundingClientRect();
+    mouse.x = e.clientX - rect.left;
+    mouse.y = e.clientY - rect.top;
+});
+
 
 window.addEventListener('keyup', (e) => {
     keys[e.key] = false;
