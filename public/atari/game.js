@@ -287,18 +287,20 @@ function animate() {
         player.draw();
 
         // Update Bullets
-        bullets.forEach((bullet, bIndex) => {
+        for (let i = bullets.length - 1; i >= 0; i--) {
+            const bullet = bullets[i];
             bullet.update();
             bullet.draw();
             
             // Remove bullets off screen
-            if (bullet.x < 0 || bullet.x > canvas.width || bullet.y < 0 || bullet.y > canvas.height) {
-                bullets.splice(bIndex, 1);
+            if (bullet.x < -20 || bullet.x > canvas.width + 20 || bullet.y < -20 || bullet.y > canvas.height + 20) {
+                bullets.splice(i, 1);
             }
-        });
+        }
 
         // Update Enemies
-        enemies.forEach((enemy, eIndex) => {
+        for (let i = enemies.length - 1; i >= 0; i--) {
+            const enemy = enemies[i];
             enemy.update();
             enemy.draw();
 
@@ -306,46 +308,51 @@ function animate() {
             const distToPlayer = Math.hypot(player.x - enemy.x, player.y - enemy.y);
             if (distToPlayer < player.radius + enemy.radius) {
                 if (player.hasShield) {
-                    enemies.splice(eIndex, 1);
+                    enemies.splice(i, 1);
                     createExplosion(enemy.x, enemy.y, enemy.color);
                     score += 50;
                     scoreEl.innerText = score;
                 } else {
                     createExplosion(player.x, player.y, player.color);
                     gameOver();
+                    break;
                 }
             }
 
             // Collision with Bullets
-            bullets.forEach((bullet, bIndex) => {
+            for (let j = bullets.length - 1; j >= 0; j--) {
+                const bullet = bullets[j];
                 const dist = Math.hypot(bullet.x - enemy.x, bullet.y - enemy.y);
                 if (dist < bullet.radius + enemy.radius) {
                     createExplosion(enemy.x, enemy.y, enemy.color);
-                    enemies.splice(eIndex, 1);
-                    bullets.splice(bIndex, 1);
+                    enemies.splice(i, 1);
+                    bullets.splice(j, 1);
                     score += 100;
                     scoreEl.innerText = score;
+                    break; // Enemy destroyed, next enemy
                 }
-            });
-        });
+            }
+        }
 
         // Powerups
-        powerups.forEach((pu, pIndex) => {
+        for (let i = powerups.length - 1; i >= 0; i--) {
+            const pu = powerups[i];
             pu.draw();
             const dist = Math.hypot(player.x - pu.x, player.y - pu.y);
             if (dist < player.radius + pu.radius) {
                 player.hasShield = true;
                 player.shieldTime = 600; // 10 seconds
-                powerups.splice(pIndex, 1);
+                powerups.splice(i, 1);
             }
-        });
+        }
 
         // Particles
-        particles.forEach((p, pIndex) => {
+        for (let i = particles.length - 1; i >= 0; i--) {
+            const p = particles[i];
             p.update();
             p.draw();
-            if (p.alpha <= 0) particles.splice(pIndex, 1);
-        });
+            if (p.alpha <= 0) particles.splice(i, 1);
+        }
     }
 }
 
@@ -353,22 +360,24 @@ function animate() {
 window.addEventListener('keydown', (e) => {
     keys[e.key] = true;
     
-    if (e.key === ' ' || e.key === 'Spacebar') {
+    if (e.key === ' ' || e.code === 'Space') {
         if (gameState === 'START' || gameState === 'GAMEOVER') {
             initGame();
         } else if (gameState === 'PLAYING') {
             // Mechanic 2: Laser Shooting
             const bulletSpeed = 10;
-            // Shoot in direction of movement or up if still
-            let vx = player.vx * 2;
-            let vy = player.vy * 2;
-            if (vx === 0 && vy === 0) vy = -bulletSpeed;
-            else {
-                const mag = Math.sqrt(vx*vx + vy*vy);
-                vx = (vx/mag) * bulletSpeed;
-                vy = (vy/mag) * bulletSpeed;
+            const mag = Math.sqrt(player.vx * player.vx + player.vy * player.vy);
+            let bvx, bvy;
+
+            if (mag > 0.2) {
+                bvx = (player.vx / mag) * bulletSpeed;
+                bvy = (player.vy / mag) * bulletSpeed;
+            } else {
+                bvx = 0;
+                bvy = -bulletSpeed;
             }
-            bullets.push(new Bullet(player.x, player.y, vx, vy));
+            
+            bullets.push(new Bullet(player.x, player.y, bvx, bvy));
         }
     }
 });
