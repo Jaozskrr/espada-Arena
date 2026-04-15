@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NEON DEFENDER - Atari Edition</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Press+Start+2P&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div id="game-container">
+        <canvas id="gameCanvas"></canvas>
+        <div id="ui-overlay">
+            <div id="start-screen" class="overlay-screen">
+                <h1 class="glitch" data-text="NEON DEFENDER">NEON DEFENDER</h1>
+                <div class="mechanics-list">
+                    <h2>Mecânicas do Jogo:</h2>
+                    <ul>
+                        <li><span class="key">1</span> Movimentação com Inércia (WASD/Setas)</li>
+                        <li><span class="key">2</span> Disparos de Laser (Espaço)</li>
+                        <li><span class="key">3</span> IA de Perseguição dos "Chasers"</li>
+                        <li><span class="key">4</span> Power-ups de Escudo Temporário</li>
+                        <li><span class="key">5</span> Progressão Automática de Dificuldade</li>
+                        <li><span class="key">6</span> Sistema de Highscore Persistente</li>
+                        <li><span class="key">7</span> Efeitos de Explosão e Partículas</li>
+                    </ul>
+                </div>
+                <p class="blink">PRESSIONE ESPAÇO PARA INICIAR</p>
+            </div>
+            <div id="hud" class="hidden">
+                <div class="hud-item">SCORE: <span id="score">0</span></div>
+                <div id="powerup-status"></div>
+                <div class="hud-item">BEST: <span id="highscore">0</span></div>
+            </div>
+            <div id="game-over" class="overlay-screen hidden">
+                <h2>FIM DE JOGO</h2>
+                <p>SCORE FINAL: <span id="final-score">0</span></p>
+                <p class="blink">PRESSIONE ESPAÇO PARA RECOMEÇAR</p>
+            </div>
+        </div>
+    </div>
+    <div class="scanlines"></div>
+    <div class="crt-glow"></div>
+    <script src="game.js"></script>
+</body>
+</html>
